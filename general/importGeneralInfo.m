@@ -12,7 +12,7 @@
 %% Import the data
 function generalinfo = importGeneralInfo(filename)
 [~, ~, raw] = xlsread(filename,'general_info');
-raw = raw(:,[1:2,5:8,19:20]);
+raw = raw(2:end,[1:2,5:8,19:20]);
 raw(cellfun(@(x) ~isempty(x) && isnumeric(x) && isnan(x),raw)) = {''};
 cellVectors = raw(:,[3,4]);
 raw = raw(:,[1,2,5,6,7,8]);
