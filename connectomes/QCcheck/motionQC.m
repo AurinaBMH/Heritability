@@ -3,7 +3,7 @@
 clear all; close all; 
 
 parcellation = 'custom200'; % 'HCPMMP1' , 'custom200';
-tract = 'iFOD2';
+tract = 'FACT';
 sift = 'SIFT2';
 doPlot = true;
 threshold = 0.5;
@@ -111,12 +111,15 @@ if strcmp(tract, 'iFOD2')
     consistency = maskuHalf(consistency);
     consistency(isnan(consistency)) = [];
     consistency = -log(consistency); 
-    consistency(~isfinite(consistency))=0; 
+    indKeep = find(isfinite(consistency)); 
+    consistency = consistency(indKeep); 
+    %consistency(~isfinite(consistency))=0; 
  
 elseif strcmp(tract, 'FACT')
     consistency = mean(binAdj,3);
     consistency = maskuHalf(consistency);
     consistency(isnan(consistency)) = [];
+    indKeep = 1:1:length(consistency);
 end
 
 % % for each edge correlate consistency with motion
@@ -162,7 +165,7 @@ for i=1:length(binLength)
     cLength(i,:) = nice_cmap(binLength(i),:);
 end
 figure; sz = 30;
-scatter(consistency', rweight, sz,cLength, 'filled'); xlabel('Consistency'); ylabel('Motion effect'); title ('Length in color');
+scatter(consistency', rweight(indKeep), sz,cLength, 'filled'); xlabel('Consistency'); ylabel('Motion effect'); title ('Length in color');
 
 % bin r into a hundred bins
 binR = discretize(rweight,100);
@@ -172,6 +175,6 @@ for i=1:length(binLength)
 end
 
 figure; sz = 30;
-scatter(consistency', avLength, sz,cR, 'filled'); xlabel('Consistency'); ylabel('Length'); title ('Motion effect');
+scatter(consistency', avLength(indKeep), sz,cR, 'filled'); xlabel('Consistency'); ylabel('Length'); title ('Motion effect');
 
 
