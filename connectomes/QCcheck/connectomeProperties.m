@@ -1,5 +1,6 @@
 
 %% Define options
+clear all; close all; 
 parcellation = 'HCPMMP1'; % 'HCPMMP1' , 'custom200';
 tract = 'FACT';
 sift = 'SIFT2';
@@ -7,7 +8,7 @@ doPlot = true;
 threshold = 0.5;
 WhatTypeNetwork = 'wu'; % 'wu' - weighted undirected; 'bu' - binary undirected;
 whatNullModel = 'randmio_und'; % 'randmio_und' - randomise topology; 'shuffleWeights' - keep topology, randomise weights.
-selectTwins = true;
+selectTwins = false;
 
 %-----------------------------------------------------------------
 % Load general info and connectomes
@@ -111,8 +112,7 @@ nice_cmap = [make_cmap('steelblue',50,30,0);flipud(make_cmap('orangered',50,30,0
 subplot(1,3,1); imagesc(log(groupAdj_length)); axis square; set(gcf,'color','w');colormap(nice_cmap); title('Group matrix - length');
 subplot(1,3,2); imagesc(log(groupAdj_variance)); axis square; set(gcf,'color','w');colormap(nice_cmap); title('Group matrix - variance');
 subplot(1,3,3); imagesc(log(groupAdj_consistency)); axis square; set(gcf,'color','w');colormap(nice_cmap); title('Group matrix - consistency');
-%---------------
---------------------------------------------------
+%-----------------------------------------------------------------
 % Plot degree distribution for each
 %-----------------------------------------------------------------
 deg_var = degrees_und(groupAdj_variance);
@@ -139,9 +139,9 @@ title(sprintf('Group connectome - consistency %s - %s - %s %s %s',parcellation, 
 
 
 %-----------------------------------------------------------------
-% Calculate correlations between individual connectomes
+% Plot the distribution of density values
 %-----------------------------------------------------------------
-[rall, pall] = connectomeCorrelation(connectomes, doPlot);
+dens = plotDensityDistrib(connectomes, doPlot); 
 
 %-----------------------------------------------------------------
 % Plot where hubs are located in the connectome - plot all nodes and size
@@ -172,3 +172,8 @@ title(sprintf('Group connectome - variance %s - %s - %s %s %s',parcellation, tra
 RCcurves(groupAdj_consistencyLC, WhatTypeNetwork,whatNullModel)
 title(sprintf('Group connectome - consistency %s - %s - %s %s %s',parcellation, tract, sift, WhatTypeNetwork, whatNullModel));
 
+
+%-----------------------------------------------------------------
+% Calculate correlations between individual connectomes
+%-----------------------------------------------------------------
+[rall, pall] = connectomeCorrelation(connectomes, doPlot);
