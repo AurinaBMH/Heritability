@@ -73,8 +73,8 @@ for s=1:numSubj
 end
 
 b0motion = avMotion(b0IND,1);
-figure; histogram(avMotion(:,1), 50); xlabel('motion - all volumes');
-figure; histogram(avMotionb0, 50); xlabel('motion - b0 volumes');
+%figure; histogram(avMotion(:,1), 50); xlabel('motion - all volumes');
+%figure; histogram(avMotionb0, 50); xlabel('motion - b0 volumes');
 
 % HOW CORRELATED MOTION ON B0 AND ALL VOLUMES;
 [r] = corr(avMotion(:,1), avMotionb0, 'type', 'Spearman');
@@ -85,22 +85,22 @@ xlabel('motion all volumes'); ylabel('motion b0 volumes')
 rskewb0 = corr(skew, avMotionb0, 'type', 'Spearman');
 rskew = corr(skew, avMotion(:,1), 'type', 'Spearman');
 
-figure; scatter(avMotionb0, skew); xlabel('motion - b0 volumes');  ylabel('Skewness');
-figure; scatter(avMotion(:,1), skew); xlabel('motion - all volumes');  ylabel('Skewness');
+%figure; scatter(avMotionb0, skew); xlabel('motion - b0 volumes');  ylabel('Skewness');
+%figure; scatter(avMotion(:,1), skew); xlabel('motion - all volumes');  ylabel('Skewness');
 
 % correlate density with motion
 rdensb0 = corr(density, avMotionb0, 'type', 'Spearman');
 rdens = corr(density, avMotion(:,1), 'type', 'Spearman');
 
-figure; scatter(avMotionb0, density); xlabel('motion - b0 volumes');  ylabel('Density');
-figure; scatter(avMotion(:,1), density); xlabel('motion - all volumes');  ylabel('Density');
+%figure; scatter(avMotionb0, density); xlabel('motion - b0 volumes');  ylabel('Density');
+%figure; scatter(avMotion(:,1), density); xlabel('motion - all volumes');  ylabel('Density');
 
 % correlate total strength of the connectome with motion
 rstrengthb0 = corr(strength, avMotionb0, 'type', 'Spearman');
 rstrength = corr(strength, avMotion(:,1), 'type', 'Spearman');
 
-figure; scatter(avMotionb0, strength); xlabel('motion - b0 volumes');  ylabel('Strength');
-figure; scatter(avMotion(:,1), strength); xlabel('motion - all volumes');  ylabel('Strength');
+%figure; scatter(avMotionb0, strength); xlabel('motion - b0 volumes');  ylabel('Strength');
+%figure; scatter(avMotion(:,1), strength); xlabel('motion - all volumes');  ylabel('Strength');
 
 % reproduce baum
 
@@ -112,14 +112,14 @@ if strcmp(tract, 'iFOD2')
     consistency(isnan(consistency)) = [];
     consistency = -log(consistency); 
     indKeep = find(isfinite(consistency)); 
-    consistency = consistency(indKeep); 
+    %consistency = consistency(indKeep); 
     %consistency(~isfinite(consistency))=0; 
  
 elseif strcmp(tract, 'FACT')
     consistency = mean(binAdj,3);
     consistency = maskuHalf(consistency);
     consistency(isnan(consistency)) = [];
-    indKeep = 1:1:length(consistency);
+    indKeep = find(consistency~=0);
 end
 
 % % for each edge correlate consistency with motion
@@ -144,10 +144,12 @@ for edge = 1:numEdges
 end
 
 % find proportion of significant correlations
-P = sum(pweight<0.05)/numEdges;
+thresh = 0.05; 
+P = sum(pweight(indKeep)<thresh)/length(indKeep);
+fprintf('%d edges are signifficantly affected by motion at p=%d\n', P, thresh)
 rweight(isnan(rweight)) = 0;
-figure; histogram(rweight, 100); xlabel('correlation between weight and motion'); ylabel('number of edges');
-figure; histogram(pweight, 100); xlabel('correlation between weight and motion'); ylabel('number of edges');
+figure; histogram(rweight(indKeep), 100); xlabel('correlation between weight and motion'); ylabel('number of edges');
+%figure; histogram(pweight, 100); xlabel('correlation between weight and motion'); ylabel('number of edges');
 
 % do with length
 % calulate length of each edge
@@ -158,23 +160,31 @@ avLength = avLength(~isnan(avLength));
 
 nice_cmap = [make_cmap('steelblue',50,30,0);flipud(make_cmap('orangered',50,30,0))];
 % bin length into a hundred bins
-binLength = discretize(avLength,100);
+numBins = 100; 
+thresholdsLength = quantile(avLength(indKeep),linspace(0,1,numBins+1));
+binLength = discretize(avLength(indKeep),thresholdsLength, 'IncludedEdge','right'); 
+
+%binLength = discretize(avLength,100);
 cLength = zeros(length(binLength),3);
 for i=1:length(binLength)
     
     cLength(i,:) = nice_cmap(binLength(i),:);
 end
 figure; sz = 30;
-scatter(consistency', rweight(indKeep), sz,cLength, 'filled'); xlabel('Consistency'); ylabel('Motion effect'); title ('Length in color');
+indKeep2 = find(consistency~=0); 
+scatter(consistency(indKeep)', rweight(indKeep), sz,cLength, 'filled'); 
+xlabel('Consistency'); ylabel('Motion effect r'); title ('Length in color');
 
 % bin r into a hundred bins
-binR = discretize(rweight,100);
-cR = zeros(length(binLength),3);
+thresholdsR = quantile(rweight(indKeep),linspace(0,1,numBins+1));
+binR = discretize(rweight(indKeep),thresholdsR, 'IncludedEdge','right'); 
+
+%binR = discretize(rweight,100);
+cR = zeros(length(binR),3);
 for i=1:length(binLength)
     cR(i,:) = nice_cmap(binR(i),:);
 end
 
 figure; sz = 30;
-scatter(consistency', avLength(indKeep), sz,cR, 'filled'); xlabel('Consistency'); ylabel('Length'); title ('Motion effect');
-
-
+scatter(consistency(indKeep)', avLength(indKeep), sz,cR, 'filled'); 
+xlabel('Consistency'); ylabel('Length'); title ('Motion effect (r) in color');
