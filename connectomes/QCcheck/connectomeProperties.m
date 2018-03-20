@@ -4,17 +4,18 @@ clear all; close all;
 parcellation = 'HCPMMP1'; % 'HCPMMP1' , 'custom200';
 tract = 'FACT';
 sift = 'SIFT2';
+weight = 'standard'; % 'FA', 'standard'
 doPlot = true;
 threshold = 0.5;
 WhatTypeNetwork = 'wu'; % 'wu' - weighted undirected; 'bu' - binary undirected;
-whatNullModel = 'randmio_und'; % 'randmio_und' - randomise topology; 'shuffleWeights' - keep topology, randomise weights.
+whatNullModel = 'shuffleWeights'; % 'randmio_und' - randomise topology; 'shuffleWeights' - keep topology, randomise weights.
 selectTwins = false;
 
 %-----------------------------------------------------------------
 % Load general info and connectomes
 %-----------------------------------------------------------------
 cd ('data/connectomes')
-Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_standard_structnets.mat', parcellation, tract, sift));
+Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_%s_structnets.mat', parcellation, tract, sift, weight));
 Length = load(sprintf('%sANDfslatlas20_acpc_%s_%s_length_structnets.mat', parcellation, tract, sift));
 cd ..
 
@@ -125,6 +126,48 @@ subplot(3,1,2); histogram(deg_cons, 50, 'FaceColor', [1 .43 .29], 'EdgeColor', [
 subplot(3,1,3); histogram(deg_length, 50, 'FaceColor', [1 .43 .29], 'EdgeColor', [.45 .45 .45]); title('Degree distribution length-based group matrix'); xlabel('Degree, k');
 
 %-----------------------------------------------------------------
+% Plot where hubs are located in the connectome - plot all nodes and size
+% them according to the degree
+%-----------------------------------------------------------------
+
+coords = Conn.COG{1};
+
+high = deg_var>mean(deg_var)+std(deg_var);
+low = deg_var<=mean(deg_var)+std(deg_var);
+deg_varHigh = deg_var(high==1); 
+deg_varLow = deg_var(low==1); 
+coordsHigh = coords(high==1,:); 
+coordsLow = coords(low==1,:); 
+
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_varHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Variance-based group matrix'); hold on; 
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_varLow*5, [.64 .87 .93], 'filled', 'MarkerEdgeColor','k');
+
+high = deg_cons>mean(deg_cons)+std(deg_cons);
+low = deg_cons<=mean(deg_cons)+std(deg_cons);
+deg_consHigh = deg_cons(high==1); 
+deg_consLow = deg_cons(low==1); 
+coordsHigh = coords(high==1,:); 
+coordsLow = coords(low==1,:); 
+
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_consHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Consistency-based group matrix'); hold on; 
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_consLow*5, [1 .86 .68], 'filled', 'MarkerEdgeColor','k');
+
+
+high = deg_length>mean(deg_length)+std(deg_length);
+low = deg_length<=mean(deg_length)+std(deg_length);
+deg_LHigh = deg_length(high==1); 
+deg_LLow = deg_length(low==1); 
+coordsHigh = coords(high==1,:); 
+coordsLow = coords(low==1,:); 
+
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_LHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Length-based group matrix'); hold on; 
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_LLow*5, [0 .61 .49], 'filled', 'MarkerEdgeColor','k');
+
+
+%-----------------------------------------------------------------
 % Calculate RC curves for group matrices
 %-----------------------------------------------------------------
 RCcurves(groupAdj_length, WhatTypeNetwork,whatNullModel)
@@ -143,27 +186,17 @@ title(sprintf('Group connectome - consistency %s - %s - %s %s %s',parcellation, 
 %-----------------------------------------------------------------
 dens = plotDensityDistrib(connectomes, doPlot); 
 
-%-----------------------------------------------------------------
-% Plot where hubs are located in the connectome - plot all nodes and size
-% them according to the degree
-%-----------------------------------------------------------------
 
-coords = Conn.COG{1};
-
-figure; scatter3(coords(:,1),coords(:,2),coords(:,3), deg_var*5, [1 .43 .29], 'filled', 'MarkerEdgeColor','k');
-title ('Variance-based group matrix')
-figure;  scatter3(coords(:,1),coords(:,2),coords(:,3), deg_cons*5, [.64 .87 .93], 'filled', 'MarkerEdgeColor','k');
-title ('Consistency-based group matrix')
-figure;  scatter3(coords(:,1),coords(:,2),coords(:,3), deg_length*5, [0 .61 .49], 'filled', 'MarkerEdgeColor','k');
-title ('Length-based group matrix')
 
 %-----------------------------------------------------------------
 % Is there a RC in the left hemipshere?
 %-----------------------------------------------------------------
 
-groupAdj_varianceLC = groupAdj_variance(1:(numNodes-20)/2, 1:(numNodes-20)/2);
-groupAdj_lengthLC = groupAdj_length(1:(numNodes-20)/2, 1:(numNodes-20)/2);
-groupAdj_consistencyLC = groupAdj_consistency(1:(numNodes-20)/2, 1:(numNodes-20)/2);
+numSubcortex = 20;
+
+groupAdj_varianceLC = groupAdj_variance(1:(numNodes-numSubcortex)/2, 1:(numNodes-numSubcortex)/2);
+groupAdj_lengthLC = groupAdj_length(1:(numNodes-numSubcortex)/2, 1:(numNodes-numSubcortex)/2);
+groupAdj_consistencyLC = groupAdj_consistency(1:(numNodes-numSubcortex)/2, 1:(numNodes-numSubcortex)/2);
 
 RCcurves(groupAdj_lengthLC, WhatTypeNetwork,whatNullModel)
 title(sprintf('Group connectome - length %s - %s - %s %s %s',parcellation, tract, sift, WhatTypeNetwork, whatNullModel));
@@ -176,4 +209,4 @@ title(sprintf('Group connectome - consistency %s - %s - %s %s %s',parcellation, 
 %-----------------------------------------------------------------
 % Calculate correlations between individual connectomes
 %-----------------------------------------------------------------
-[rall, pall] = connectomeCorrelation(connectomes, doPlot);
+%[rall, pall] = connectomeCorrelation(connectomes, doPlot);

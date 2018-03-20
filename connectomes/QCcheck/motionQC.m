@@ -2,17 +2,17 @@
 % the effect of motion
 clear all; close all; 
 
-parcellation = 'custom200'; % 'HCPMMP1' , 'custom200';
+parcellation = 'custom500'; % 'HCPMMP1' , 'custom200';
 tract = 'FACT';
 sift = 'SIFT2';
+weight = 'FA';% 'strandard'
 doPlot = true;
 threshold = 0.5;
-selectTwins = true;
 everySecond = false;
 
 
 cd ('data/connectomes')
-Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_standard_structnets.mat', parcellation, tract, sift));
+Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_%s_structnets.mat', parcellation, tract, sift, weight));
 Length = load(sprintf('%sANDfslatlas20_acpc_%s_%s_length_structnets.mat', parcellation, tract, sift));
 M = load('motion_parameters.mat');
 
