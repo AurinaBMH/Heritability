@@ -1,7 +1,7 @@
 
 %% Define options
-clear all; close all; 
-parcellation = 'HCPMMP1'; % 'HCPMMP1' , 'custom200';
+clear all; close all;
+parcellation = 'custom200'; % 'HCPMMP1' , 'custom200';
 tract = 'FACT';
 sift = 'SIFT2';
 weight = 'standard'; % 'FA', 'standard'
@@ -10,6 +10,7 @@ threshold = 0.5;
 WhatTypeNetwork = 'wu'; % 'wu' - weighted undirected; 'bu' - binary undirected;
 whatNullModel = 'shuffleWeights'; % 'randmio_und' - randomise topology; 'shuffleWeights' - keep topology, randomise weights.
 selectTwins = false;
+whatMeasure = 'betweeness'; 
 
 %-----------------------------------------------------------------
 % Load general info and connectomes
@@ -116,9 +117,17 @@ subplot(1,3,3); imagesc(log(groupAdj_consistency)); axis square; set(gcf,'color'
 %-----------------------------------------------------------------
 % Plot degree distribution for each
 %-----------------------------------------------------------------
-deg_var = degrees_und(groupAdj_variance);
-deg_cons = degrees_und(groupAdj_consistency);
-deg_length = degrees_und(groupAdj_length);
+switch whatMeasure
+    case 'degree'
+        deg_var = degrees_und(groupAdj_variance); %([1:180 191:370], [1:180 191:370]));
+        deg_cons = degrees_und(groupAdj_consistency); % ([1:180 191:370], [1:180 191:370]));
+        deg_length = degrees_und(groupAdj_length); %([1:180 191:370], [1:180 191:370]));
+    case 'betweeness'
+        deg_var = betweenness_bin(double(logical(groupAdj_variance))); %([1:180 191:370], [1:180 191:370]));
+        deg_cons = betweenness_bin(double(logical(groupAdj_consistency))); % ([1:180 191:370], [1:180 191:370]));
+        deg_length = betweenness_bin(double(logical(groupAdj_length))); %([1:180 191:370], [1:180 191:370]));
+end
+
 
 figure;
 subplot(3,1,1); histogram(deg_var, 50, 'FaceColor', [1 .43 .29], 'EdgeColor', [.45 .45 .45]); title('Degree distribution variance-based group matrix'); xlabel('Degree, k');
@@ -130,41 +139,41 @@ subplot(3,1,3); histogram(deg_length, 50, 'FaceColor', [1 .43 .29], 'EdgeColor',
 % them according to the degree
 %-----------------------------------------------------------------
 
-coords = Conn.COG{1};
+coords = Conn.COG{1}; %([1:180 191:370],:);
 
 high = deg_var>mean(deg_var)+std(deg_var);
 low = deg_var<=mean(deg_var)+std(deg_var);
-deg_varHigh = deg_var(high==1); 
-deg_varLow = deg_var(low==1); 
-coordsHigh = coords(high==1,:); 
-coordsLow = coords(low==1,:); 
+deg_varHigh = deg_var(high==1);
+deg_varLow = deg_var(low==1);
+coordsHigh = coords(high==1,:);
+coordsLow = coords(low==1,:);
 
-figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_varHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
-title ('Variance-based group matrix'); hold on; 
-scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_varLow*5, [.64 .87 .93], 'filled', 'MarkerEdgeColor','k');
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), log(deg_varHigh)*15, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Variance-based group matrix'); hold on;
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), log(deg_varLow)*15, [.64 .87 .93], 'filled', 'MarkerEdgeColor','k');
 
 high = deg_cons>mean(deg_cons)+std(deg_cons);
 low = deg_cons<=mean(deg_cons)+std(deg_cons);
-deg_consHigh = deg_cons(high==1); 
-deg_consLow = deg_cons(low==1); 
-coordsHigh = coords(high==1,:); 
-coordsLow = coords(low==1,:); 
+deg_consHigh = deg_cons(high==1);
+deg_consLow = deg_cons(low==1);
+coordsHigh = coords(high==1,:);
+coordsLow = coords(low==1,:);
 
-figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_consHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
-title ('Consistency-based group matrix'); hold on; 
-scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_consLow*5, [1 .86 .68], 'filled', 'MarkerEdgeColor','k');
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), log(deg_consHigh)*15, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Consistency-based group matrix'); hold on;
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), log(deg_consLow)*15, [1 .86 .68], 'filled', 'MarkerEdgeColor','k');
 
 
 high = deg_length>mean(deg_length)+std(deg_length);
 low = deg_length<=mean(deg_length)+std(deg_length);
-deg_LHigh = deg_length(high==1); 
-deg_LLow = deg_length(low==1); 
-coordsHigh = coords(high==1,:); 
-coordsLow = coords(low==1,:); 
+deg_LHigh = deg_length(high==1);
+deg_LLow = deg_length(low==1);
+coordsHigh = coords(high==1,:);
+coordsLow = coords(low==1,:);
 
-figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), deg_LHigh*5, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
-title ('Length-based group matrix'); hold on; 
-scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), deg_LLow*5, [0 .61 .49], 'filled', 'MarkerEdgeColor','k');
+figure; scatter3(coordsHigh(:,1),coordsHigh(:,2),coordsHigh(:,3), log(deg_LHigh)*15, [.89 0 .06], 'filled', 'MarkerEdgeColor','k');
+title ('Length-based group matrix'); hold on;
+scatter3(coordsLow(:,1),coordsLow(:,2),coordsLow(:,3), log(deg_LLow)*15, [0 .61 .49], 'filled', 'MarkerEdgeColor','k');
 
 
 %-----------------------------------------------------------------
@@ -184,7 +193,7 @@ title(sprintf('Group connectome - consistency %s - %s - %s %s %s',parcellation, 
 %-----------------------------------------------------------------
 % Plot the distribution of density values
 %-----------------------------------------------------------------
-dens = plotDensityDistrib(connectomes, doPlot); 
+dens = plotDensityDistrib(connectomes, doPlot);
 
 
 
