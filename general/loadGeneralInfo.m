@@ -1,5 +1,6 @@
-% import information
-clear all;
+
+%% Define options - import any connectomes to get numbers
+clear all; close all;
 
 cd ('data/general')
 filename = 'general_info_restricted.xlsx';
@@ -90,29 +91,76 @@ for twin1 = 1:numSubjects
         end
     end
     
-    writetable(twinTable, 'twinCovariates.txt', 'Delimiter', '\t')
-    % make variables for MZ twins: ID, age, sex
-    MZ_ID(:,1) = twinTable.twin1(twinTable.zigosity==1); 
-    MZ_ID(:,2) = twinTable.twin2(twinTable.zigosity==1); 
     
-    MZ_age(:,1) = twinTable.age1(twinTable.zigosity==1); 
-    MZ_age(:,2) = twinTable.age2(twinTable.zigosity==1); 
-    
-    MZ_sex(:,1) = twinTable.sex1(twinTable.zigosity==1); 
-    MZ_sex(:,2) = twinTable.sex2(twinTable.zigosity==1); 
-    
-    % make variables for DZ twins: ID, age, sex
-    DZ_ID(:,1) = twinTable.twin1(twinTable.zigosity==2); 
-    DZ_ID(:,2) = twinTable.twin2(twinTable.zigosity==2); 
-    
-    DZ_age(:,1) = twinTable.age1(twinTable.zigosity==2); 
-    DZ_age(:,2) = twinTable.age2(twinTable.zigosity==2); 
-    
-    DZ_sex(:,1) = twinTable.sex1(twinTable.zigosity==2); 
-    DZ_sex(:,2) = twinTable.sex2(twinTable.zigosity==2); 
-    
-    % save in matlab file
-    save('twinCovariates.mat', 'MZ_ID', 'MZ_age', 'MZ_sex', 'DZ_ID', 'DZ_age', 'DZ_sex'); 
-
 end
-cd ../..
+writetable(twinTable, 'twinCovariates.txt', 'Delimiter', '\t')
+
+% make variables for MZ twins: ID, age, sex
+MZ_ID(:,1) = twinTable.twin1(twinTable.zigosity==1);
+MZ_ID(:,2) = twinTable.twin2(twinTable.zigosity==1);
+
+MZ_age(:,1) = twinTable.age1(twinTable.zigosity==1);
+MZ_age(:,2) = twinTable.age2(twinTable.zigosity==1);
+
+MZ_sex(:,1) = twinTable.sex1(twinTable.zigosity==1);
+MZ_sex(:,2) = twinTable.sex2(twinTable.zigosity==1);
+
+% make variables for DZ twins: ID, age, sex
+DZ_ID(:,1) = twinTable.twin1(twinTable.zigosity==2);
+DZ_ID(:,2) = twinTable.twin2(twinTable.zigosity==2);
+
+DZ_age(:,1) = twinTable.age1(twinTable.zigosity==2);
+DZ_age(:,2) = twinTable.age2(twinTable.zigosity==2);
+
+DZ_sex(:,1) = twinTable.sex1(twinTable.zigosity==2);
+DZ_sex(:,2) = twinTable.sex2(twinTable.zigosity==2);
+
+% save in matlab file
+save('twinCovariates.mat', 'MZ_ID', 'MZ_age', 'MZ_sex', 'DZ_ID', 'DZ_age', 'DZ_sex');
+
+%-----------------------------------------------------------------
+% To remove twins that don't have DWI, load any connectome file
+%-----------------------------------------------------------------
+parcellation = 'custom200'; % 'HCPMMP1' , 'custom200';
+tract = 'FACT';
+sift = 'SIFT2';
+weight = 'standard'; % 'FA', 'standard'
+
+cd ..
+cd ('connectomes')
+Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_%s_structnets.mat', parcellation, tract, sift, weight));
+cd ..
+cd ('general')
+% remove subjects that don't have DWI. If one in a pair doesn't have it,
+% remove both
+i=1;
+for MZ=1:size(MZ_ID,1)
+    t1 = intersect(Conn.SUBS, MZ_ID(MZ,1));
+    t2 = intersect(Conn.SUBS, MZ_ID(MZ,2));
+    if isempty(t1) || isempty(t2)
+        remMZ(i) = MZ;
+        i=i+1;
+    end
+end
+% do same for DZ
+j=1;
+for DZ=1:size(DZ_ID,1)
+    t1 = intersect(Conn.SUBS, DZ_ID(DZ,1));
+    t2 = intersect(Conn.SUBS, DZ_ID(DZ,2));
+    if isempty(t1) || isempty(t2)
+        remDZ(j) = DZ;
+        j=j+1;
+    end
+end
+
+% remove pairs if one of the twins is missing diffusion data
+MZ_ID(remMZ,:) = [];
+DZ_ID(remDZ,:) = [];
+MZ_age(remMZ,:) = [];
+DZ_age(remDZ,:) = [];
+MZ_sex(remMZ,:) = [];
+DZ_sex(remDZ,:) = [];
+
+save('twinCovariatesDWI.mat', 'MZ_ID', 'MZ_age', 'MZ_sex', 'DZ_ID', 'DZ_age', 'DZ_sex');
+
+
