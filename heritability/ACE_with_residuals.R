@@ -1,20 +1,30 @@
+install.packages("OpenMx")
+install.packages("XLConnect")
 require(OpenMx)
 
 #Prepare Data
 # -----------------------------------------------------------------------
 library(XLConnect)
+library(OpenMx)
+mxOption(NULL,"Default optimizer","SLSQP")
 library(R.matlab)
-
-data_covar = readMat("twinCovariates.mat")
-data = read.delim("~/GoogleDrive/Genetics_connectome/Heritability/data/connectomes/twinConnectomes.txt")
+options(warn=1)
+setwd("~/GoogleDrive/Genetics_connectome/Heritability/data/general")
+data_covar = readMat("twinCovariatesDWI.mat")
+data = readMat("~/GoogleDrive/Genetics_connectome/Heritability/data/output/twinEdges_HCPMMP1_iFOD2_FA.mat")
 # all edges
-for edge = 1:1000
+numEdges = dim(data$Output.DZ)[3]
+heritabilityA <- numeric(numEdges)
+heritabilityC <- numeric(numEdges)
+heritabilityE <- numeric(numEdges)
+
+for (edge in c(1:20)){
 
 MeasureMZ = 'Edge weight MZ'
 MeasureDZ = 'Edge weight DZ'
 
-mzData_measure<-data$Output.MZ[,edge]
-dzData_measure<-data$Output.DZ[,edge]
+mzData_measure<-data$Output.MZ[,,edge]
+dzData_measure<-data$Output.DZ[,,edge]
 
 colnames(mzData_measure) <- c('twin1', 'twin2')
 colnames(dzData_measure) <- c('twin1', 'twin2')
@@ -26,18 +36,20 @@ MeanDZ = colMeans(dzData_measure,na.rm=TRUE)
 MeanDZ = mean(MeanDZ)
 CovMZ = cov(mzData_measure,use="complete")
 CovDZ = cov(dzData_measure,use="complete")
------------------------------------------
+
 # plot the data
-png ("Twin_Height.png")
+
+pictureName = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/%sedge.png",edge)
+png (pictureName)
 split.screen(c(1,2))
 screen(1)
 plot(mzData_measure,main=MeasureMZ,xlim=c(min(mzData_measure, dzData_measure), max(mzData_measure, dzData_measure)), ylim=c(min(mzData_measure, dzData_measure), max(mzData_measure, dzData_measure)))
 screen(2)
 plot(dzData_measure,main=MeasureDZ,xlim=c(min(mzData_measure, dzData_measure), max(mzData_measure, dzData_measure)), ylim=c(min(mzData_measure, dzData_measure), max(mzData_measure, dzData_measure)))
 dev.off() # to complete the writing process and return output to your monitor
-
-mzData<-data.frame(data$Output.MZ, data_covar$MZ.age[,1], data_covar$MZ.age[,2], data_covar$MZ.sex[,1], data_covar$MZ.sex[,2])
-dzData<-data.frame(data$Output.DZ, data_covar$DZ.age[,1], data_covar$DZ.age[,2], data_covar$DZ.sex[,1], data_covar$DZ.sex[,2])
+# -----------------------------------------
+mzData<-data.frame(data$Output.MZ[,,edge], data_covar$MZ.age[,1], data_covar$MZ.age[,2], data_covar$MZ.sex[,1], data_covar$MZ.sex[,2])
+dzData<-data.frame(data$Output.DZ[,,edge], data_covar$DZ.age[,1], data_covar$DZ.age[,2], data_covar$DZ.sex[,1], data_covar$DZ.sex[,2])
 
 colnames(mzData) <- c('twin1', 'twin2', 'ageT1MZ', 'ageT2MZ', 'sexT1MZ', 'sexT2MZ')
 colnames(dzData) <- c('twin1', 'twin2', 'ageT1DZ', 'ageT2DZ', 'sexT1DZ', 'sexT2DZ')
@@ -92,6 +104,10 @@ twinACE <- mxModel("twinACE",
 #Run ACE model
 # -----------------------------------------------------------------------
 twinACEFit <- mxRun(twinACE)
+# running the same model twice - increases heritability for the 2nd edge
+twinACEFit <- mxRun(twinACEFit)
+
+
 summary(twinACEFit)
 
 # Generate ACE Model Output
@@ -100,15 +116,19 @@ estMean   <- mxEval(mean, twinACEFit)             # expected mean
 estCovMZ  <- mxEval(twinACE.expCovMZ, twinACEFit)      # expected covariance matrix for MZ's
 estCovDZ  <- mxEval(twinACE.expCovDZ, twinACEFit)      # expected covariance matrix for DZ's
 estVA     <- mxEval(a*a, twinACEFit)              # additive genetic variance, a^2
-estVC     <- mxEval(c*c, twinACEFit)              # dominance variance, d^2
+estVC     <- mxEval(c*c, twinACEFit)              # shared enviromnemtal variance, c^2
 estVE     <- mxEval(e*e, twinACEFit)              # unique environmental variance, e^2
 estVP     <- (estVA+estVC+estVE)                  # total variance
 estPropVA <- estVA/estVP                          # standardized additive genetic variance
-estPropVC <- estVC/estVP                          # standardized dominance variance
+estPropVC <- estVC/estVP                          # standardized shared enviromnemtal variance
 estPropVE <- estVE/estVP                          # standardized unique environmental variance
 estACE    <- rbind(cbind(estVA,estVC,estVE),      # table of estimates
                    cbind(estPropVA,estPropVC,estPropVE))
 LL_ACE    <- mxEval(objective, twinACEFit)        # likelihood of ADE model
+
+heritabilityA[edge] <- estPropVA
+heritabilityC[edge] <- estPropVC
+heritabilityE[edge] <- estPropVE
 
 mzresids  <- matrix(NA,nrow=nrow(mzData),ncol=2)
 for(i in 1:nrow(mzData)){
@@ -119,11 +139,14 @@ for(i in 1:nrow(dzData)){
   dzresids[i,] <- as.matrix(dzData[i,c("twin1","twin2")]) - as.matrix(mxEval(expression=twinACE.expMean + twinACE.beta %*% DZ.DZDefVars, model = twinACEFit, compute=T,defvar.row=i))
 }
 
-png ("/Users/Aurina/Documents/Genetics_connectome/HCP_proj/Twin_SEM_practice/Twin_Height_residuals.png")
+pictureNameResiduals = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/%sedge_residuals.png",edge)
+png (pictureNameResiduals)
+
 split.screen(c(1,2))
 screen(1)
 plot(mzresids,main="mzresids", xlim=c(min(mzresids, dzresids), max(mzresids, dzresids)), ylim=c(min(mzresids, dzresids), max(mzresids, dzresids)))
 screen(2)
 plot(dzresids,main="dzresids", xlim=c(min(mzresids, dzresids), max(mzresids, dzresids)), ylim=c(min(mzresids, dzresids), max(mzresids, dzresids)))
 dev.off() # to complete the writing process and return output to your monitor
-end
+
+}
