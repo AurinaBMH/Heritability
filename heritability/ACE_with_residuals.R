@@ -1,6 +1,7 @@
 install.packages("OpenMx")
 install.packages("XLConnect")
 require(OpenMx)
+require(psych)
 
 #Prepare Data
 # -----------------------------------------------------------------------
@@ -8,17 +9,24 @@ library(XLConnect)
 library(OpenMx)
 mxOption(NULL,"Default optimizer","SLSQP")
 library(R.matlab)
+
+
+# choose options
+parcellation = "HCPMMP1" #"HCPMMP1"
+tract = "iFOD2"
+weights = "standard"
+
 options(warn=1)
-setwd("~/GoogleDrive/Genetics_connectome/Heritability/data/general")
-data_covar = readMat("twinCovariatesDWI.mat")
-data = readMat("~/GoogleDrive/Genetics_connectome/Heritability/data/output/twinEdges_HCPMMP1_iFOD2_FA.mat")
+setwd("~/GoogleDrive/Genetics_connectome/Heritability/data/output")
+data_covar = readMat("~/GoogleDrive/Genetics_connectome/Heritability/data/general/twinCovariatesDWI.mat")
+data = readMat(sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/twinEdges_%s_%s_%s.mat",parcellation, tract, weights))
 # all edges
 numEdges = dim(data$Output.DZ)[3]
 heritabilityA <- numeric(numEdges)
 heritabilityC <- numeric(numEdges)
 heritabilityE <- numeric(numEdges)
 
-for (edge in c(1:20)){
+for (edge in c(1500:1550)){
 
 MeasureMZ = 'Edge weight MZ'
 MeasureDZ = 'Edge weight DZ'
@@ -39,7 +47,7 @@ CovDZ = cov(dzData_measure,use="complete")
 
 # plot the data
 
-pictureName = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/%sedge.png",edge)
+pictureName = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/plots/%sedge_%s_%s_%s.png",edge, parcellation, tract, weights)
 png (pictureName)
 split.screen(c(1,2))
 screen(1)
@@ -139,7 +147,7 @@ for(i in 1:nrow(dzData)){
   dzresids[i,] <- as.matrix(dzData[i,c("twin1","twin2")]) - as.matrix(mxEval(expression=twinACE.expMean + twinACE.beta %*% DZ.DZDefVars, model = twinACEFit, compute=T,defvar.row=i))
 }
 
-pictureNameResiduals = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/%sedge_residuals.png",edge)
+pictureNameResiduals = sprintf("~/GoogleDrive/Genetics_connectome/Heritability/data/output/plots/%sedge_residuals_%s_%s_%s.png",edge, parcellation, tract, weights)
 png (pictureNameResiduals)
 
 split.screen(c(1,2))
@@ -149,4 +157,24 @@ screen(2)
 plot(dzresids,main="dzresids", xlim=c(min(mzresids, dzresids), max(mzresids, dzresids)), ylim=c(min(mzresids, dzresids), max(mzresids, dzresids)))
 dev.off() # to complete the writing process and return output to your monitor
 
+
+#AeModel   <- mxModel(twinACE, name="AE" )
+#AeModel   <- omxSetParameters( AeModel, labels="c", free=FALSE, values=0 )
+#AeFit     <- mxRun(AeModel)
+#AeSumm   <- summary(AeFit)
+#AeSumm
+
+# Generate AE Model Output
+#estVA     <- mxEval(a*a, AeFit)               # additive genetic variance, a^2
+#estVE     <- mxEval(e*e, AeFit)               # unique environmental variance, e^2
+#estVP     <- (estVA+estVE)                    # total variance
+#estPropVA <- estVA/estVP                      # standardized additive genetic variance
+#estPropVE <- estVE/estVP                      # standardized unique environmental variance
+#estAE     <- rbind(cbind(estVA,estVE),        # table of estimates
+                   cbind(estPropVA,estPropVE))
+#LL_AE     <- mxEval(objective, AeFit)         # likelihood of AE model
+
+
 }
+fileNameSave = sprintf("%s_%s_%s.txt", parcellation, tract, weights)
+write.table(data.frame(heritabilityA[1500:1550]), fileNameSave, sep="\t")
