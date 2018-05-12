@@ -1,8 +1,8 @@
 % make average matrices
 parcellation = 'HCPMMP1'; %'HCPMMP1' , 'custom200'
-tract = 'FACT';
+tract = 'iFOD2';
 sift = 'SIFT2';
-threshold = 0.5;
+threshold = 0.3;
 
 Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_standard_structnets.mat', parcellation, tract, sift));
 Length = load(sprintf('%sANDfslatlas20_acpc_%s_%s_length_structnets.mat', parcellation, tract, sift));
@@ -32,7 +32,7 @@ end
 % take average of distance
 avDist = mean(dist,3);
 
-[groupAdj_variance, consist_var] = giveMeGroupAdj_variance(connectomes);
+[groupAdj_variance, consist_var] = giveMeGroupAdj_variance(connectomes, threshold);
 [groupAdj_consistency, groupDist, consist_cons] = giveMeGroupAdj_consistency(connectomes, distances,threshold);
 % distance bin consistency (sent by Bratislav Misic) - this gives binary
 % group matrix; can use that as mask and take the average of nonzero values

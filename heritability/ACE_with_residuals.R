@@ -7,14 +7,13 @@ require(psych)
 # -----------------------------------------------------------------------
 library(XLConnect)
 library(OpenMx)
-mxOption(NULL,"Default optimizer","SLSQP")
+#mxOption(NULL,"Default optimizer","SLSQP")
 library(R.matlab)
-
 
 # choose options
 parcellation = "HCPMMP1" #"HCPMMP1"
 tract = "iFOD2"
-weights = "standard"
+weights = "FA"
 
 options(warn=1)
 setwd("~/GoogleDrive/Genetics_connectome/Heritability/data/output")
@@ -26,7 +25,14 @@ heritabilityA <- numeric(numEdges)
 heritabilityC <- numeric(numEdges)
 heritabilityE <- numeric(numEdges)
 
-for (edge in c(1500:1550)){
+Pvals = data.frame(matrix(ncol = 3, nrow = numEdges))
+colnames(Pvals) <- c("Saturated", "CE", "AE")
+
+p_AE <- numeric(numEdges)
+p_CE <- numeric(numEdges)
+p_AC <- numeric(numEdges)
+
+for (edge in c(1:5)){
 
 MeasureMZ = 'Edge weight MZ'
 MeasureDZ = 'Edge weight DZ'
@@ -67,15 +73,15 @@ selVars <- c('twin1','twin2')
 # -----------------------------------------------------------------------
 twinACE <- mxModel("twinACE",
                    # Matrices X, Y, and Z to store a, c, and e path coefficients
-                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,2]/3)), label="a", name="X" ),
-                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,2]/3)), label="c", name="Y" ),
-                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,2]/3)), label="e", name="Z" ),
+                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,1]/3)), label="a", name="X" ),
+                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,1]/3)), label="c", name="Y" ),
+                   mxMatrix( type="Full", nrow=1, ncol=1, free=TRUE, values=sqrt((CovDZ[1,1]/3)), label="e", name="Z" ),
                    # Matrices A, C, and E compute variance components
                    mxAlgebra( expression=X %*% t(X), name="A" ),
                    mxAlgebra( expression=Y %*% t(Y), name="C" ),
                    mxAlgebra( expression=Z %*% t(Z), name="E" ),
 
-                   mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values= MeanDZ, label="mean", name="expMean" ),
+                   mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values = MeanDZ, label="mean", name="expMean" ),
                    # Declare a matrix for the definition variable regression parameters, called beta
                    mxMatrix( type="Full", nrow=1, ncol=2, free=TRUE, values= 0, label=c("betaAge","betaSex"), name="beta"),
 
@@ -111,9 +117,8 @@ twinACE <- mxModel("twinACE",
 
 #Run ACE model
 # -----------------------------------------------------------------------
-twinACEFit <- mxRun(twinACE)
+twinACEFit <- mxTryHard(twinACE)
 # running the same model twice - increases heritability for the 2nd edge
-twinACEFit <- mxRun(twinACEFit)
 
 
 summary(twinACEFit)
@@ -133,6 +138,10 @@ estPropVE <- estVE/estVP                          # standardized unique environm
 estACE    <- rbind(cbind(estVA,estVC,estVE),      # table of estimates
                    cbind(estPropVA,estPropVC,estPropVE))
 LL_ACE    <- mxEval(objective, twinACEFit)        # likelihood of ADE model
+
+msize = nrow(mzData_measure)*ncol(mzData_measure)
+dsize = nrow(dzData_measure)*ncol(dzData_measure)
+DF_ACE = msize+dsize-nrow(twinACEFit@output$standardErrors)
 
 heritabilityA[edge] <- estPropVA
 heritabilityC[edge] <- estPropVC
@@ -157,24 +166,80 @@ screen(2)
 plot(dzresids,main="dzresids", xlim=c(min(mzresids, dzresids), max(mzresids, dzresids)), ylim=c(min(mzresids, dzresids), max(mzresids, dzresids)))
 dev.off() # to complete the writing process and return output to your monitor
 
-
-#AeModel   <- mxModel(twinACE, name="AE" )
-#AeModel   <- omxSetParameters( AeModel, labels="c", free=FALSE, values=0 )
-#AeFit     <- mxRun(AeModel)
-#AeSumm   <- summary(AeFit)
-#AeSumm
+# Generate AE Model - C=0
+twinAE   <- twinACE
+twinAE   <- omxSetParameters( twinAE, labels="c", free=FALSE, values=0 )
+AEFit     <- mxRun(twinAE)
+AESumm   <- summary(AEFit)
 
 # Generate AE Model Output
-#estVA     <- mxEval(a*a, AeFit)               # additive genetic variance, a^2
-#estVE     <- mxEval(e*e, AeFit)               # unique environmental variance, e^2
-#estVP     <- (estVA+estVE)                    # total variance
-#estPropVA <- estVA/estVP                      # standardized additive genetic variance
-#estPropVE <- estVE/estVP                      # standardized unique environmental variance
-#estAE     <- rbind(cbind(estVA,estVE),        # table of estimates
-                   cbind(estPropVA,estPropVE))
-#LL_AE     <- mxEval(objective, AeFit)         # likelihood of AE model
+estVA_AE     <- mxEval(a*a, AEFit)               # additive genetic variance, a^2
+estVE_AE     <- mxEval(e*e, AEFit)               # unique environmental variance, e^2
+estVP_AE     <- (estVA_AE+estVE_AE)                    # total variance
+estPropVA_AE <- estVA_AE/estVP_AE                      # standardized additive genetic variance
+estPropVE_AE <- estVE_AE/estVP_AE                     # standardized unique environmental variance
+estAE_AE     <- rbind(cbind(estVA_AE,estVE_AE),        # table of estimates
+                   cbind(estPropVA_AE,estPropVE_AE))
+LL_AE     <- mxEval(objective, AEFit)         # likelihood of AE model
 
+#DF_AE = msize+dsize-nrow(AEFit@output$standardErrors)
+
+#mychi_AE = LL_AE - LL_ACE
+#mychi_DF_AE = DF_AE - DF_ACE
+#mychi_p_AE = 1 - pchisq(mychi_AE, mychi_DF_AE)
+
+#p_AE[edge] <- mychi_p_AE
+
+#Generate CE Model
+twinCE   <- twinACE
+twinCE   <- omxSetParameters(twinCE, labels="a", free=FALSE, values=0 )
+CEFit     <- mxRun(twinCE)
+CESumm   <- summary(CEFit)
+
+#Generate CE Model Output
+estVC_CE     <- mxEval(c*c, CEFit)               # shared environmental variance, c^2
+estVE_CE     <- mxEval(e*e, CEFit)               # unique environmental variance, e^2
+estVP_CE     <- (estVC_CE+estVE_CE)                    # total variance
+estPropVC_CE <- estVC_CE/estVP_CE                      # standardized additive genetic variance
+estPropVE_CE <- estVE_CE/estVP_CE                     # standardized unique environmental variance
+estAE_CE     <- rbind(cbind(estVC_CE,estVE_CE),        # table of estimates
+                      cbind(estPropVC_CE,estPropVE_CE))
+LL_CE     <- mxEval(objective, CEFit)         # likelihood of AE model
+
+DF_CE = msize+dsize-nrow(CEFit@output$standardErrors)
+mychi_CE = LL_CE - LL_ACE
+mychi_DF_CE = DF_CE - DF_ACE
+mychi_p_CE = 1 - pchisq(mychi_CE, mychi_DF_CE)
+p_CE[edge] <- mychi_p_CE
+
+#Generate AC Model
+#twinAC   <- twinACE
+#twinAC   <- omxSetParameters(twinAC, labels="e", free=FALSE, values=0 )
+#ACFit     <- mxTryHard(twinAC)
+#ACSumm   <- summary(ACFit)
+
+#Generate AC Model Output
+#estVA_AC     <- mxEval(a*a, ACFit)               # additive genetic variance, a^2
+#estVC_AC     <- mxEval(c*c, ACFit)               # shared environmental variance, c^2
+#estVP_AC     <- (estVA_AC+estVC_AC)                    # total variance
+#estPropVA_AC <- estVA_AC/estVP_AC                      # standardized additive genetic variance
+#estPropVC_AC <- estVC_AC/estVP_AC                     # standardized unique environmental variance
+#estAC_AC     <- rbind(cbind(estVA_AC,estVC_AC),        # table of estimates
+#                      cbind(estPropVA_AC,estPropVC_AC))
+#LL_AC     <- mxEval(objective, ACFit)         # likelihood of AE model
+
+#DF_AC = msize+dsize-nrow(ACFit@output$standardErrors)
+
+#mychi_AC = LL_AC - LL_ACE
+#mychi_DF_AC = DF_AC - DF_ACE
+#mychi_p_AC = 1 - pchisq(mychi_AC, mychi_DF_AC)
+
+#p_AC[edge] <- mychi_p_AC
+
+options('digits' = 5)
+compValues = mxCompare(twinACEFit, c(CEFit, AEFit))
+Pvals[edge,] = compValues$p[2:3]
 
 }
 fileNameSave = sprintf("%s_%s_%s.txt", parcellation, tract, weights)
-write.table(data.frame(heritabilityA[1500:1550]), fileNameSave, sep="\t")
+write.table(data.frame(heritabilityA[1:10]), fileNameSave, sep="\t")
