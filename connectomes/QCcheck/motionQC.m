@@ -7,7 +7,7 @@ tract = 'iFOD2';
 sift = 'SIFT2';
 weight = 'standard';% 'strandard'
 doPlot = true;
-threshold = 0.5;
+%threshold = 0.5;
 everySecond = true;
 motionMeasure = 'FD'; % 'rotation', 'translation' % eddy
 
@@ -54,15 +54,14 @@ FDcheck = ones(length(motion.SUBS),1);
 
 % check if there are subjects that have any value of FD exceeding 2
 for i=1:length(motion.SUBS)
-    
+
     % check if there are subjects that have any value of FD exceeding 2
     if sum(motion.LR_FD(i,:)>2)>1 || sum(motion.RL_FD(i,:)>2)>1
         FDcheck(i) = 0;
     end
-    
+
     % calculate mean FD, rotation and translation across left and right
     m_FD(i) = mean(motion.LR_FD(i,:)) + mean(motion.RL_FD(i,:))/2;
-    
     
     m_rot(i) = mean(motion.LR_rotation(i,:)) + mean(motion.RL_rotation(i,:))/2;
     m_tran(i) = mean(motion.LR_translation(i,:)) + mean(motion.RL_translation(i,:))/2;
@@ -70,12 +69,12 @@ for i=1:length(motion.SUBS)
     % scales but correlated) - doesn't really make sense to average this
     % way
     m_SNR(i) = mean(motion.SNR(i,:),2);
-    
+
 end
 
 
 for s=1:numSubj
-    
+
     switch motionMeasure
         case 'FD'
             avMotionb0(s) = m_FD(s);
@@ -84,16 +83,16 @@ for s=1:numSubj
         case 'translation'
             avMotionb0(s) = m_tran(s);
         case 'eddy'
-        avMotionb0(s) = mean(motionEddy{s}(b0IND(secondINDb0),2));         
+        avMotionb0(s) = mean(motionEddy{s}(b0IND(secondINDb0),2));
     end
-%     
-%                  if everySecond 
+%
+%                  if everySecond
 %         allmotion = ;
 %              else
 %         allmotion = motionEddy{s}(:,2);
 %              end
         avMotion(s,:) = mean(motionEddy{s}(secondIND,:),1);
-    
+
     adj(:,:,s) = connectomes{s};
     % calculate skewness for each subject to use it as "hubness"
     deg(s,:) = degrees_und(connectomes{s});
@@ -106,7 +105,7 @@ for s=1:numSubj
     adjSubj = maskAdj(:,:,s);
     edgesAdj(s,:) = adjSubj(mask==1);
     edgeLength(:,:,s) = distances{s};
-    
+
 end
 
 
@@ -153,7 +152,7 @@ if strcmp(tract, 'iFOD2')
     indKeep = find(isfinite(consistency));
     %consistency = consistency(indKeep);
     %consistency(~isfinite(consistency))=0;
-    
+
 elseif strcmp(tract, 'FACT')
     consistency = mean(binAdj,3);
     consistency = maskuHalf(consistency);
@@ -164,12 +163,12 @@ end
 % % for each edge correlate consistency with motion
 % rcons = zeros(length(consistency),1);
 % rconsR = zeros(length(consistency),1);
-% 
+%
 % for edge = 1:length(consistency)
 %     rcons(edge) = corr(consistency, avMotion(:,1));
 %     rconsR(edge) = corr(consistencyRoberts, avMotion(:,1));
 % end
-% 
+%
 % figure; histogram(rcons, 100);
 % figure; histogram(rconsR, 100);
 
@@ -177,9 +176,9 @@ end
 rweight = zeros(length(consistency),1);
 pweight = zeros(length(consistency),1);
 for edge = 1:numEdges
-    
+
     [rweight(edge), pweight(edge)] = corr(edgesAdj(:,edge), avMotionb0, 'type', 'Spearman');
-    
+
 end
 
 % find proportion of significant correlations
@@ -197,7 +196,8 @@ avLength(isnan(avLength)) = 0;
 avLength = maskuHalf(avLength);
 avLength = avLength(~isnan(avLength));
 
-nice_cmap = [make_cmap('steelblue',50,30,0);flipud(make_cmap('orangered',50,30,0))];
+nice_cmap = [make_cmap('steelblue',50,30,0);[0 0 0]; flipud(make_cmap('orangered',50,30,0))];
+%nice_cmap = [make_cmap('orangered',50,30,0);[0 0 0]; flipud(make_cmap('steelblue',50,30,0))];
 % bin length into a hundred bins
 numBins = 100;
 thresholdsLength = quantile(avLength(indKeep),linspace(0,1,numBins+1));
@@ -206,7 +206,7 @@ binLength = discretize(avLength(indKeep),thresholdsLength, 'IncludedEdge','right
 %binLength = discretize(avLength,100);
 cLength = zeros(length(binLength),3);
 for i=1:length(binLength)
-    
+
     cLength(i,:) = nice_cmap(binLength(i),:);
 end
 figure; sz = 30;

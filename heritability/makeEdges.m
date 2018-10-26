@@ -1,26 +1,26 @@
-% make a txt file for an edge
-clear all; close all;
-parcellation = 'HCPMMP1'; % 'HCPMMP1' , 'custom200';
+
+close all;
+clear all;
+
+% choose options for the data to be loaded
+whatDWI = 'HCP';
+parc = 'HCP';
 tract = 'iFOD2';
-sift = 'SIFT2';
-groupConn = 'variance';
-weight = 'FA'; % 'FA', 'standard'
-dens = 0.3; 
+weight = 'standard';
+brainPart = 'wholeBrain'; 
+strRem = 10;
 
-cd ('data/general')
-
+[A, matrices, coordinates, avWeight, SUBjects] = giveConnDATA(whatDWI,parc,tract,weight,brainPart,strRem); 
 load('twinCovariatesDWI.mat')
-cd ..
-cd ('connectomes')
 
-ConnMask = load(sprintf('%sANDfslatlas20_acpc_%s_%s_%s_structnets.mat', parcellation, tract, sift, weight));
+subjects = vertcat(MZ_ID(:), DZ_ID(:)); 
+subjects(isnan(subjects)) = []; 
 
-twins = vertcat(MZ_ID(:), DZ_ID(:));
-[~, twinIND] = intersect(ConnMask.SUBS, twins);
+[SUBS, subIND] = intersect(SUBjects, subjects);
 
-coordinatesMask = ConnMask.COG(twinIND);
-connectomesMask = ConnMask.ADJS(twinIND);
-SUBS = ConnMask.SUBS(twinIND);
+coordinatesMask = coordinates(subIND);
+connectomesMask = matrices(subIND);
+%SUBS = ConnMask.SUBS(subIND);
 
 
 % make a group matrix and select only edges existing in the group matrix
@@ -50,6 +50,11 @@ avDist = mean(dist,3);
 %-----------------------------------------------------------------
 % Make three versions of group matrices - length, variance, consistency
 %-----------------------------------------------------------------
+
+
+[Gr] = giveMeRichClub(matrices, coordinates, groupConn ,densThreshold, giveRC, cvMeasure, consThr);
+
+
 if strcmp(groupConn, 'length')
     groupAdj_maskLength = fcn_group_average(adjMatr,avDist,hemiid);
     % replace zeros with NaNs;

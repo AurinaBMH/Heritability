@@ -1,4 +1,4 @@
-function [PhiNorm,PhiTrue,PhiRand] = RichClubPhiNorm(Adj,kmax,numIter,numRepeats,WhatTypeNetwork,whatNullModel)
+function [PhiNorm,PhiTrue,PhiRand] = RichClubPhiNorm(Adj,kmax,numIter,numRepeats,WhatTypeNetwork,whatNullModel, D, mCon)
 % RichClubPhiNorm
 %
 % INPUTS:
@@ -50,7 +50,12 @@ case 'bd' % binary, directed network:
     % "degree is taken to be the sum of incoming and outgoing connections"
     RichClubFun = @(x) rich_club_bd(x,kmax);
 case 'wuStrength' % Weighted, directed network:
+
     RichClubFun = @(x) rich_club_wu_strength(x);
+    kmax = 100; 
+case 'wuStrengthBins' % Weighted, directed network:
+
+    RichClubFun = @(x) rich_club_wu_strengthBINS(x);
     kmax = 100; 
 otherwise
     error('Unknown network type ''%s''',WhatTypeNetwork);
@@ -59,7 +64,7 @@ end
 % ------------------------------------------------------------------------------
 % Compute phi for the real network:
 % ------------------------------------------------------------------------------
-PhiTrue = RichClubFun(Adj);
+[PhiTrue] = RichClubFun(Adj);
 
 % ------------------------------------------------------------------------------
 % Compute for randomized versions of the network
@@ -77,15 +82,32 @@ case 'shuffleWeights'
     f_rand_null = @f_shuffleWeights;
 case 'strength'
     f_rand_null = @null_model_und_sign;
+case 'geometry'
+    f_rand_null = @geombinsurr_partial;
+
 end
 
 timer = tic;
-parfor i = 1:numRepeats
-    fprintf(1,'[%u/%u] Rewiring each link %u times...',i,numRepeats,numIter);
-    [Adj_rand,numRewirings] = f_rand_null(Adj,numIter); % Random graph with preserved in/out degree distribution
+for i = 1:numRepeats
+    fprintf(1,'[%u/%u] Rewiring each link %u times...\n',i,numRepeats,numIter);
+    if strcmp(whatNullModel, 'strength')
+        weiFreq = 0.1; 
+        [Adj_rand,numRewirings] = f_rand_null(Adj,numIter, weiFreq); % Random graph with preserved in/out degree distribution
+    elseif strcmp(whatNullModel, 'geometry')
+        [Adj_rand] = f_rand_null(Adj,D, 1, 100); % Random graph with preserved in/out degree distribution
+%         [Adj_rand] = f_rand_null(mCon,D, 1, 100); % from Gollo hub
+%         fragility paper - randomisation done on non-thresholded matrix
+%         and the only sttrongest links are kept. 
+%         [Adj_rand] = threshold_arbmeasure(Adj_rand, Adj_rand, density_und(Adj)); 
+    else
+        [Adj_rand,numRewirings] = f_rand_null(Adj,numIter); % Random graph with preserved in/out degree distribution
+    end
+    
+    if ~strcmp(whatNullModel, 'geometry')
     fprintf(1,' %u rewirings performed.\n',numRewirings);
+    end
     PhiRand(i,:) = RichClubFun(Adj_rand);
-
+    
     if i==1 || mod(i,numRepeats/10)==0
         fprintf(1,'Approx. %s remaining...\n',BF_thetime(toc(timer)/i*(numRepeats-i)));
     end

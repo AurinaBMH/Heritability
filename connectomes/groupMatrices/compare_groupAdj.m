@@ -2,9 +2,10 @@
 parcellation = 'HCPMMP1'; %'HCPMMP1' , 'custom200'
 tract = 'iFOD2';
 sift = 'SIFT2';
+weight = 'standard'; 
 threshold = 0.3;
 
-Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_standard_structnets.mat', parcellation, tract, sift));
+Conn = load(sprintf('%sANDfslatlas20_acpc_%s_%s_%s_structnets.mat', parcellation, tract, sift, weight));
 Length = load(sprintf('%sANDfslatlas20_acpc_%s_%s_length_structnets.mat', parcellation, tract, sift));
 
 coordinates = Conn.COG;

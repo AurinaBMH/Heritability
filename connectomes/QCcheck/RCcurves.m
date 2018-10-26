@@ -1,8 +1,21 @@
 function RCcurves(Adj, WhatTypeNetwork,whatNullModel)
+
+% inputs: 
+% Adj - a matrix to calculate RC on; 
+% WhatTypeNetwork - type of network: bu (binary undirected), bd (binary directed), wd (weighted directed), 'wu (weighted undirected)')
+% whatNullModel:
+% 1. randmio_und or randmio_dir - topology and weights randomised. If used
+% with 'bu' network type, gives topological RC. 
+% 2. shuffleWeights - topology fixed, weights randomised. Gives weighted RC
 if strcmp(WhatTypeNetwork, 'bu')
     Adj = logical(Adj);
 end
-deg = degrees_und(Adj);
+if strcmp(WhatTypeNetwork, 'bu') || strcmp(WhatTypeNetwork, 'wu')
+    deg = degrees_und(Adj);
+elseif strcmp(WhatTypeNetwork, 'bd') || strcmp(WhatTypeNetwork, 'wd')
+    [~,~,deg] = degrees_dir(Adj);
+end
+    
 kmax = max(deg);
 [PhiNorm,PhiTrue,PhiRand] = RichClubPhiNorm(Adj,kmax,50,100,WhatTypeNetwork,whatNullModel);
 %-------------------------------------------------------------------------------
