@@ -199,5 +199,5 @@ heritabilityS[edge] <- heritmodels[INDmin,4]
 }
 
 heritabilityACE <- data.frame(heritabilityA,heritabilityC,heritabilityE,heritabilityS)
-write.csv(heritabilityACE,sprintf("heritabilityACE_%s_%s_%s_%s%d.txt",parcellation, tract, weights, conDens, round(conDens*100)),row.names=FALSE)
+write.csv(heritabilityACE,sprintf("heritabilityACE_%s_%s_%s_%s%d.txt",parcellation, tract, weights, cvMeasure, round(conDens*100)),row.names=FALSE)
 }
