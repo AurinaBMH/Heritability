@@ -36,8 +36,8 @@ data_covar$DZ.age[is.na(data_covar$DZ.age)] <- -999
 data_covar$DZ.sex[is.na(data_covar$DZ.sex)] <- -999
 
 # mark 0 values as NA because these will be the outliers in the data - we want to exclude them.
-data$Output.DZ[data$Output.DZ == 0] <- NA
-data$Output.MZ[data$Output.MZ == 0] <- NA
+#data$Output.DZ[data$Output.DZ == 0] <- NA
+#data$Output.MZ[data$Output.MZ == 0] <- NA
 
 # all edges
 numEdges = dim(data$Output.DZ)[3]
@@ -67,6 +67,12 @@ myDataDZ<-data.frame(data$Output.DZ[,,edge], data_covar$DZ.age[,1], data_covar$D
 
 myDataMZ_measure<-data$Output.MZ[,,edge]
 myDataDZ_measure<-data$Output.DZ[,,edge]
+# replaces outlier with NA
+outliersValue<- boxplot.stats(myDataMZ_measure)$out
+myDataMZ_measure[myDataMZ_measure %in% outliersValue]=NA; 
+
+outliersValue<- boxplot.stats(myDataDZ_measure)$out
+myDataDZ_measure[myDataDZ_measure %in% outliersValue]=NA; 
 
 colnames(myDataMZ) <- c('twin1', 'twin2', 'sib','ageT1MZ', 'ageT2MZ', 'ageSIBMZ', 'sexT1MZ', 'sexT2MZ', 'sexSIBMZ')
 colnames(myDataDZ) <- c('twin1', 'twin2', 'sib','ageT1DZ', 'ageT2DZ', 'ageSIBDZ', 'sexT1DZ', 'sexT2DZ', 'sexSIBDZ')
@@ -199,5 +205,5 @@ heritabilityS[edge] <- heritmodels[INDmin,4]
 }
 
 heritabilityACE <- data.frame(heritabilityA,heritabilityC,heritabilityE,heritabilityS)
-write.csv(heritabilityACE,sprintf("heritabilityACE_%s_%s_%s_%s%d.txt",parcellation, tract, weights, cvMeasure, round(conDens*100)),row.names=FALSE)
+write.csv(heritabilityACE,sprintf("heritabilityACEnoOUTLIERS_%s_%s_%s_%s%d.txt",parcellation, tract, weights, cvMeasure, round(conDens*100)),row.names=FALSE)
 }

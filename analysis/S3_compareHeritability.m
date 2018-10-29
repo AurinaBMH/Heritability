@@ -9,7 +9,7 @@ elseif strcmp(parcellation, 'cust250')
 end
     
 load(sprintf('twinEdges_%s_%s_%s_%s%d.mat', parcellation, tractography, weight2, cvMeasure, round(densThreshold*100))); 
-heritFile = sprintf('heritabilityACE_%s_%s_%s_%s%d.txt', parcellation, tractography, weight2, cvMeasure, round(densThreshold*100)); 
+heritFile = sprintf('heritabilityACEnoOUTLIERS_%s_%s_%s_%s%d.txt', parcellation, tractography, weight2, cvMeasure, round(densThreshold*100)); 
 heritabilityACE = importHeritabilityResult(heritFile); 
 
 numNodes = size(groupAdjlog,1); 
@@ -27,7 +27,7 @@ nodeData = degrees_und(groupAdjlog);
 RichClubHuman(groupAdjlog,heritMatrix, nodeData); 
 title('Whole brain')
 ylabel('Mean edge heritability')
-ylim([0.4 0.65])
+ylim([0.3 0.75])
 
 % get values for the left cortex as in CGE analysis
 % get values for the left and rifht cortex
@@ -39,7 +39,7 @@ nodeDataLC = nodeData(LC);
 RichClubHuman(groupAdjlogLC,heritMatrixLC, nodeDataLC)
 title('Left cortex')
 ylabel('Mean edge heritability')
-ylim([0.4 0.65])
+ylim([0.3 0.75])
 
 % get values for the left and rifht cortex
 LC = 1:numNodes/2-numSubc; 
@@ -52,6 +52,6 @@ nodeDataLRC = nodeData(LCRC);
 RichClubHuman(groupAdjlogLRC,heritMatrixLRC, nodeDataLRC)
 title('Cortex')
 ylabel('Mean edge heritability')
-ylim([0.4 0.65])
+ylim([0.3 0.75])
 end
 
