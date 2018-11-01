@@ -37,7 +37,11 @@ ind=find(W);                                %find all links
 E=sortrows([ind M(ind)], -2);               %sort by M
 en=round((n^2-n)*p/ud);                     %number of links to be preserved
 
-W(E(en+1:end,1))=0;                         %apply threshold
+if isinf(E(en,2))                           % last edge kept should have a valid measure of consistency
+    error ('Insufficient conectome density')
+else
+W(E(en+1:end,1))=0;
+end%apply threshold
 
 if ud==2                                    %if symmetric matrix
     W=W+W.';                                %reconstruct symmetry
